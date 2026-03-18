@@ -9,16 +9,32 @@ load_dotenv()
 intents = discord.Intents.default()
 intents.message_content = True
 
-bot = commands.Bot(command_prefix=",", intents=intents)
+class DilfBot(commands.Bot):
+    def __init__(self):
+        super().__init__(
+            command_prefix=",",
+            intents=intents,
+            case_insensitive=True,
+            reconnect=True,
+            status=discord.Status.do_not_disturb
+        )
+    
+    async def start(self, token):
+        await self.load_extension("osu")
+        await super().start(token)
+        
+
+    async def on_ready(self):
+        print(f"Logged in as {self.user}")
+        await super().on_ready()
 
 
-@bot.command()
-async def ping(ctx):
-    await ctx.send("Pong!")
+if __name__ == "__main__":
+    import asyncio
 
-
-bot_token = os.environ.get("bot-token")
-if not bot_token:
-    raise Exception("bot token error")
-
-bot.run(bot_token)
+    token = os.environ.get("bot-token")
+    if not token:
+        raise Exception("bot token error")
+    
+    bot = DilfBot()
+    asyncio.run(bot.start(token))
