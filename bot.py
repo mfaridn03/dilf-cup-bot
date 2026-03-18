@@ -1,8 +1,10 @@
 import os
 import discord
+import traceback
 import redis.asyncio as aioredis
 
 from discord.ext import commands
+from jishaku.paginators import PaginatorInterface
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -62,8 +64,31 @@ class DilfBot(commands.Bot):
         await self.invoke(ctx)
 
     async def on_command_error(self, ctx, error):
-        fmt_message = "```py\n{0.__class__.__name__}: {0}\n```".format(error)
-        await ctx.send(fmt_message)
+        # fmt_message = "```py\n{0.__class__.__name__}: {0}\n```".format(error)
+        
+        err = ''.join(traceback.format_exception(
+            type(error),
+            error,
+            error.__traceback__
+        ))
+        err_lines = err.splitlines()
+
+        paginator = commands.Paginator(
+            prefix="```py",
+            suffix="```",
+            max_size=1600
+        )
+        for line in err_lines:
+            paginator.add_line(line)
+        
+        interface = PaginatorInterface(ctx.bot, paginator, owner=ctx.author)
+        await interface.send_to(ctx)
+
+    async def is_owner(self, user: discord.User):
+        if user.id == int(os.environ.get("owner-discord-id")):
+            return True
+
+        return await super().is_owner(user)
 
 if __name__ == "__main__":
     import asyncio
