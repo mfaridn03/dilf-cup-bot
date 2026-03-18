@@ -16,10 +16,6 @@ class Osu(commands.Cog):
             client_id=OSU_CLIENT_ID,
             client_secret=OSU_CLIENT_SECRET,
         )
-    
-    @commands.command(name="ping")
-    async def cmd_ping(self, ctx):
-        await ctx.send("Pong!")
 
     @commands.command(name="set")
     async def cmd_set(self, ctx: commands.Context, username: str = None):
@@ -47,6 +43,35 @@ class Osu(commands.Cog):
         
         await self.bot.redis.set(f"osu:discord:{ctx.author.id}", player.id)
         await ctx.send(f"Discord linked to player `{player.username}`")
+
+    @commands.command(name="recent", aliases=["r"])
+    async def cmd_recent(self, ctx: commands.Context):
+        """
+        Fetch latest pass score
+        """
+        if not await self.bot.redis.exists(f"osu:discord:{ctx.author.id}"):
+            return await ctx.send("You are not linked")
+        
+        player_id = int(await self.bot.redis.get(f"osu:discord:{ctx.author.id}"))
+        recent_scores = await self.api.user_scores(
+            user_id=player_id,
+            type=ossapi.ScoreType.RECENT,
+            include_fails=False,
+            limit=1,
+            mode=ossapi.GameMode.OSU,
+            legacy_only=True,
+        )
+        if len(recent_scores) == 0:
+            return await ctx.send("No recent passes found")
+        
+        score = recent_scores[0]
+        artist = score.beatmapset.artist
+        title = score.beatmapset.title_unicode
+        diff = score.beatmap.version
+        pp = score.pp
+
+        await ctx.send(f"Last score: {artist} - {title} [{diff}] {pp}pp")
+
 
 async def setup(bot):
     await bot.add_cog(Osu(bot))
