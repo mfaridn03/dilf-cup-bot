@@ -1,5 +1,6 @@
 import os
 import discord
+import redis.asyncio as aioredis
 
 from discord.ext import commands
 from dotenv import load_dotenv
@@ -18,6 +19,7 @@ class DilfBot(commands.Bot):
             reconnect=True,
             status=discord.Status.do_not_disturb
         )
+        self.redis = None
     
     async def start(self, token):
         try:
@@ -26,13 +28,26 @@ class DilfBot(commands.Bot):
         except Exception as e:
             print(f"Error loading extension: {e}")
             return
+        
+        # load redis
+        self.redis = aioredis.Redis()
+        response = await self.redis.ping()
+        print("Redis connected", response)
 
         await super().start(token)
-        
 
     async def on_ready(self):
         print(f"Logged in as {self.user}")
         await super().on_ready()
+    
+    async def close(self):
+        if self.redis is not None:
+            print("Closing Redis")
+            await self.redis.close()
+            self.redis = None
+        
+        print("Bot closed")
+        await super().close()
 
     async def on_message(self, message):
         ctx = await self.get_context(message)
