@@ -1,5 +1,6 @@
 import os
 import ossapi
+import discord
 
 from discord.ext import commands
 from dotenv import load_dotenv
@@ -66,11 +67,32 @@ class Osu(commands.Cog):
         
         score = recent_scores[0]
         artist = score.beatmapset.artist
-        title = score.beatmapset.title_unicode
+        title = score.beatmapset.title
         diff = score.beatmap.version
         pp = score.pp
 
-        await ctx.send(f"Last score: {artist} - {title} [{diff}] {pp}pp")
+        # data
+        acc = round(score.accuracy * 100, 2)
+        mods = [mod.acronym for mod in score.mods]
+        # get rid of CL unless nomod
+        if mods == ["CL"]:
+            mods = "NM"
+        else:
+            mods.remove("CL")
+
+        # set up embed
+        embed = discord.Embed()
+        embed.title = f"{artist} - {title} [{diff}]"
+        embed.url = score.beatmap.url
+        embed.set_image(url=score.beatmapset.covers.cover)
+        embed.set_footer(text=f"Mapset by {score.beatmapset.creator}")
+
+        # fields
+        embed.add_field(name="pp", value=f"{pp}pp")
+        embed.add_field(name="acc", value=f"{acc}%")
+        embed.add_field(name="mods", value=", ".join(mods), inline=False)
+        
+        await ctx.send(embed=embed)
 
 
 async def setup(bot):
