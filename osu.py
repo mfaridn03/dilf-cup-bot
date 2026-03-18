@@ -18,16 +18,21 @@ class Osu(commands.Cog):
             client_secret=OSU_CLIENT_SECRET,
         )
 
+    @commands.is_owner()
     @commands.command(name="set")
-    async def cmd_set(self, ctx: commands.Context, username: str = None):
+    async def cmd_set(self, ctx: commands.Context, member: discord.Member = None, username: str = None):
         """
         Set your osu username. Leave blank to unlink
         """
+        if member is None:
+            member = ctx.author
+        elif member.bot:
+            return
 
         if username is None:
             # check if user is linked
-            if await self.bot.redis.exists(f"osu:discord:{ctx.author.id}"):
-                await self.bot.redis.delete(f"osu:discord:{ctx.author.id}")
+            if await self.bot.redis.exists(f"osu:discord:{member.id}"):
+                await self.bot.redis.delete(f"osu:discord:{member.id}")
                 return await ctx.send("Discord unlinked from player")
             else:
                 return await ctx.send("You are not linked")
@@ -42,8 +47,8 @@ class Osu(commands.Cog):
         except ValueError:
             return await ctx.send(f"Player `{username}` not found")
         
-        await self.bot.redis.set(f"osu:discord:{ctx.author.id}", player.id)
-        await ctx.send(f"Discord linked to player `{player.username}`")
+        await self.bot.redis.set(f"osu:discord:{member.id}", player.id)
+        await ctx.send(f"{member.name} linked to player `{player.username}`")
 
     @commands.command(name="recent", aliases=["r"])
     async def cmd_recent(self, ctx: commands.Context):
