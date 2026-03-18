@@ -56,6 +56,10 @@ class DilfBot(commands.Bot):
         
         await self.invoke(ctx)
 
+    async def on_command_error(self, ctx, error):
+        fmt_message = "```py\n{0.__class__.__name__}: {0}\n```".format(error)
+        await ctx.send(fmt_message)
+
 if __name__ == "__main__":
     import asyncio
 
