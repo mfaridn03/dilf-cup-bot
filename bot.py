@@ -1,6 +1,7 @@
 import os
 import discord
 import traceback
+import aiofiles
 import redis.asyncio as aioredis
 
 from discord.ext import commands
@@ -13,7 +14,7 @@ intents = discord.Intents.default()
 intents.message_content = True
 
 class DilfBot(commands.Bot):
-    def __init__(self):
+    def __init__(self, scores: dict):
         super().__init__(
             command_prefix=",",
             intents=intents,
@@ -26,6 +27,7 @@ class DilfBot(commands.Bot):
             "osu",
             "jishaku",
         ]
+        self.scores = scores
     
     async def start(self, token):
         try:
@@ -47,13 +49,21 @@ class DilfBot(commands.Bot):
         print(f"Logged in as {self.user}")
         await super().on_ready()
     
-    async def close(self):
+    async def cleanup(self):
         if self.redis is not None:
             print("Closing Redis")
-            await self.redis.close()
+            await self.redis.aclose()
             self.redis = None
-        
-        print("Bot closed")
+
+        if self.scores:
+            async with aiofiles.open("data/scores.json", "w") as f:
+                await f.write(json.dumps(self.scores))
+            self.scores = None
+            print("Scores saved")
+    
+    async def close(self):
+        await self.cleanup()
+        print("Cleanup done")
         await super().close()
 
     async def on_message(self, message):
@@ -92,10 +102,17 @@ class DilfBot(commands.Bot):
 
 if __name__ == "__main__":
     import asyncio
+    import json
 
     token = os.environ.get("bot-token")
     if not token:
         raise Exception("bot token error")
     
-    bot = DilfBot()
+    with open("data/scores.json", "r") as f:
+        scores = json.load(f)
+
+    if not scores:
+        scores = {}
+
+    bot = DilfBot(scores)
     asyncio.run(bot.start(token))
