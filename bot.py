@@ -20,11 +20,16 @@ class DilfBot(commands.Bot):
             status=discord.Status.do_not_disturb
         )
         self.redis = None
+        self._cogs = [
+            "osu",
+            "jishaku",
+        ]
     
     async def start(self, token):
         try:
-            await self.load_extension("osu")
-            print("Extension loaded")
+            for cog in self._cogs:
+                await self.load_extension(cog)
+                print(f"Cog {cog} loaded")
         except Exception as e:
             print(f"Error loading extension: {e}")
             return
@@ -32,7 +37,7 @@ class DilfBot(commands.Bot):
         # load redis
         self.redis = aioredis.Redis()
         response = await self.redis.ping()
-        print("Redis connected", response)
+        print("Redis connected:", response)
 
         await super().start(token)
 
