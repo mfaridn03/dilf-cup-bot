@@ -20,7 +20,13 @@ class DilfBot(commands.Bot):
         )
     
     async def start(self, token):
-        await self.load_extension("osu")
+        try:
+            await self.load_extension("osu")
+            print("Extension loaded")
+        except Exception as e:
+            print(f"Error loading extension: {e}")
+            return
+
         await super().start(token)
         
 
@@ -28,6 +34,12 @@ class DilfBot(commands.Bot):
         print(f"Logged in as {self.user}")
         await super().on_ready()
 
+    async def on_message(self, message):
+        ctx = await self.get_context(message)
+        if ctx.author.bot or ctx.command is None:
+            return
+        
+        await self.invoke(ctx)
 
 if __name__ == "__main__":
     import asyncio
