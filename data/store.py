@@ -6,7 +6,7 @@ BEATMAPS_HASH = "beatmap-combo"
 
 class RedisStore:
     def __init__(self):
-        self.redis = aioredis.Redis()
+        self.redis = aioredis.Redis(decode_responses=True)
 
     async def close(self):
         await self.redis.aclose()
