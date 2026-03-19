@@ -92,6 +92,12 @@ class Osu(commands.Cog):
 
         score = recent_scores[0]
         score.pp = score.pp or 0  # thanks ppy
+        
+        #  1=ranked, 2=approved
+        unranked = False
+        if score.beatmap.ranked.value not in {1, 2}:
+            unranked = True
+
         username = await self.bot.redis.get_osuname(ctx.author.id)
 
         # fetch combo from cache
@@ -102,7 +108,6 @@ class Osu(commands.Cog):
             await self.bot.redis.cache_beatmap_combo(score.beatmap_id, beatmap.max_combo)
 
         beatmap_max_combo = await self.bot.redis.get_beatmap_combo(score.beatmap_id)
-
         embed = await EmbedUtils.recent_score(
             ctx=ctx,
             username=username,
@@ -112,7 +117,10 @@ class Osu(commands.Cog):
         )
 
         # save score to db
-        if await self.bot.redis.save_score(ctx, score):
+        if unranked:
+            msg = "Map is not ranked/approved, score not saved!!"
+            embed.colour = discord.Colour.orange()
+        elif await self.bot.redis.save_score(ctx, score):
             msg = "New entry added"
             embed.colour = discord.Colour.green()
         else:

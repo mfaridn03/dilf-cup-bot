@@ -32,10 +32,19 @@ class PlayerTop:
         max_combo = int(score_data["max_combo"])
         mods = score_data["mods"]
         mods.sort(key=lambda x: ModUtils.MOD_ORDER().index(x))
-        mods = f"+{','.join(score_data['mods'])}"
+        mods = f"{','.join(score_data['mods'])}"
         # bathbot formatting
         # return f"{artist} - {title} [{diff}]\n{rank_emote} **{pp}pp** ({acc}%) [**{combo}x**/{max_combo}x] **{mods}**"
-        return f"{artist} - {title} [{diff}]", f"{rank_emote} **{pp}pp** ({acc}%) [**{combo}x**/{max_combo}x] **{mods}**"
+        part1 = f"{artist} - {title} [{diff}]"
+        part2 = f"{rank_emote} {pp}pp ```ansi\n"
+        part3 = "[2;32m{}[0m • [2;33m[[1;33m{}[0m[2;33m/{}x][0m • [2;35m{}[0m".format(
+            f"{acc}%",
+            str(combo) + "x",
+            max_combo,
+            f"{mods.replace(',','')}",
+        )
+        part3 += "```"
+        return part1, part2 + part3
 
     def _calculate_total_pp(self) -> float:
         cur_weight = 1.0
