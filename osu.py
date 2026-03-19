@@ -20,6 +20,12 @@ class Osu(commands.Cog):
             client_id=OSU_CLIENT_ID,
             client_secret=OSU_CLIENT_SECRET,
         )
+
+    @commands.is_owner()
+    @commands.command(name="close")
+    async def cmd_close(self, ctx: commands.Context):
+        await ctx.send("shutting down")
+        await self.bot.close()
     
     @commands.is_owner()
     @commands.command(name="set")
@@ -79,6 +85,7 @@ class Osu(commands.Cog):
         title = score.beatmapset.title
         diff = score.beatmap.version
         pp = score.pp or 0
+        username = await self.bot.redis.get_osuname(ctx.author.id)
 
         # data
         acc = round(score.accuracy * 100, 2)
@@ -95,9 +102,8 @@ class Osu(commands.Cog):
         n100 = score.statistics.ok or 0
         n300 = score.statistics.great or 0
         hit_text = f"""```ansi
-[2;34m{n300}[0m/[2;36m{n100}[0m/[2;33m{n50}[0m/[2;31m{n0}[0m
-```
-"""
+[2;34m{n300}[0m[2;30m/[0m[2;36m{n100}[0m[2;30m/[0m[2;33m{n50}[0m[2;30m/[0m[2;31m{n0}[0m
+```"""
         # max combo
         play_combo = score.max_combo or 0
         beatmap = await self.api.beatmap(beatmap_id=score.beatmap_id)
@@ -113,6 +119,11 @@ class Osu(commands.Cog):
         embed.set_image(url=score.beatmapset.covers.cover)
         embed.set_footer(text=f"Mapset by {score.beatmapset.creator}")
         embed.set_thumbnail(url=GRADE_IMAGE_URL.format(score.rank.value))
+        embed.set_author(
+            name=username,
+            url=f"https://osu.ppy.sh/users/{player_id}",
+            icon_url=ctx.author.display_avatar.url
+        )
 
         # fields
         embed.add_field(name="pp", value=f"{pp}pp")
