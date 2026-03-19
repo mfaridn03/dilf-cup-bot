@@ -1,4 +1,5 @@
 import discord
+import ossapi
 
 from discord.ext import commands
 
@@ -12,8 +13,8 @@ class EmbedUtils:
         ctx: commands.Context,
         username: str,
         player_id: int,
-        score,
-        beatmap,
+        score: ossapi.Score,
+        beatmap_max_combo: int,
     ) -> discord.Embed:
         pp = score.pp or 0
         acc = round(score.accuracy * 100, 2)
@@ -31,10 +32,8 @@ class EmbedUtils:
 [2;34m{n300}[0m[2;30m/[0m[2;36m{n100}[0m[2;30m/[0m[2;33m{n50}[0m[2;30m/[0m[2;31m{n0}[0m
 ```"""
 
-        play_combo = score.max_combo or 0
-        map_combo = beatmap.max_combo or -1
-        if map_combo == -1:
-            raise ValueError(f"Beatmap max combo is None for beatmap ID: {score.beatmap_id}")
+        play_combo = score.max_combo
+        map_combo = beatmap_max_combo
 
         embed = discord.Embed()
         embed.title = f"{score.beatmapset.artist} - {score.beatmapset.title} [{score.beatmap.version}]"

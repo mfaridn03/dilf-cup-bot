@@ -26,6 +26,15 @@ class Osu(commands.Cog):
     async def cmd_close(self, ctx: commands.Context):
         await ctx.send("shutting down")
         await self.bot.close()
+
+    @commands.is_owner()
+    @commands.command(name="clearscores", aliases=["cs"])
+    async def cmd_clearscores(self, ctx: commands.Context):
+        """
+        Reset all scores for a user
+        """
+        await self.bot.redis.reset_scores(ctx)
+        await ctx.send(f"Scores reset for {ctx.author.name}")
     
     @commands.is_owner()
     @commands.command(name="set")
@@ -81,18 +90,35 @@ class Osu(commands.Cog):
             return await ctx.send("No recent passes found", reference=ctx.message)
 
         score = recent_scores[0]
-        beatmap = await self.api.beatmap(beatmap_id=score.beatmap_id)
+        score.pp = score.pp or 0  # thanks ppy
         username = await self.bot.redis.get_osuname(ctx.author.id)
+
+        # fetch combo from cache
+        if not await self.bot.redis.has_beatmap_combo(score.beatmap_id):
+            beatmap = await self.api.beatmap(beatmap_id=score.beatmap_id)
+
+            assert beatmap.max_combo is not None, "Beatmap max combo is None"
+            await self.bot.redis.cache_beatmap_combo(score.beatmap_id, beatmap.max_combo)
+
+        beatmap_max_combo = await self.bot.redis.get_beatmap_combo(score.beatmap_id)
 
         embed = await EmbedUtils.recent_score(
             ctx=ctx,
             username=username,
             player_id=player_id,
             score=score,
-            beatmap=beatmap,
+            beatmap_max_combo=beatmap_max_combo,
         )
+
+        # save score to db
+        if await self.bot.redis.save_score(ctx, score):
+            msg = "New score added"
+            embed.colour = discord.Colour.green()
+        else:
+            msg = "Did not overwrite existing score"
+            embed.colour = discord.Colour.red()
         
-        await ctx.send(embed=embed, reference=ctx.message)
+        await ctx.send(msg, embed=embed, reference=ctx.message)
 
 
 async def setup(bot):
