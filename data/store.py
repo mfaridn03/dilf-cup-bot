@@ -94,7 +94,7 @@ class RedisStore:
         max_combo = await self.get_beatmap_combo(score.beatmap_id)
         mods = [mod.acronym for mod in score.mods]
         if mods == ["CL"]:
-            mods = ["NM"]
+            mods = []
         elif "CL" in mods:
             mods.remove("CL")
 

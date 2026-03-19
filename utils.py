@@ -62,7 +62,7 @@ class EmbedUtils:
 
         mods = [mod.acronym for mod in score.mods]
         if mods == ["CL"]:
-            mods = ["NM"]
+            mods = []
         elif "CL" in mods:
             mods.remove("CL")
         mods.sort(key=lambda x: ModUtils.MOD_ORDER().index(x))
@@ -95,3 +95,74 @@ class EmbedUtils:
         embed.add_field(name="combo", value=f"**{play_combo}x**/{map_combo}x")
         embed.add_field(name=" ", value=hit_text, inline=False)
         return embed
+
+class TopPlaysPaginator(discord.ui.View):
+    PER_PAGE = 5
+
+    def __init__(
+        self,
+        entries: list[tuple[str, str]],
+        author_name: str,
+        player_id: int,
+        total_pp: float,
+        avatar_url: str,
+    ):
+        super().__init__(timeout=60)
+        self.entries = entries
+        self.author_name = author_name
+        self.player_id = player_id
+        self.total_pp = total_pp
+        self.avatar_url = avatar_url
+
+        self.page = 0
+        self.max_page = max(0, (len(entries) - 1) // self.PER_PAGE)
+
+        self._update_buttons()
+
+    def _update_buttons(self):
+        self.btn_first.disabled = self.page == 0
+        self.btn_prev.disabled = self.page == 0
+        self.btn_next.disabled = self.page == self.max_page
+        self.btn_last.disabled = self.page == self.max_page
+
+    def build_embed(self) -> discord.Embed:
+        embed = discord.Embed()
+        embed.set_author(name=f"{self.author_name}'s top plays", icon_url=self.avatar_url)
+        embed.set_thumbnail(url=f"https://a.ppy.sh/{self.player_id}?img.jpeg")
+        embed.set_footer(text=f"Page {self.page + 1}/{self.max_page + 1} • Total PP: {self.total_pp}")
+
+        start = self.page * self.PER_PAGE
+        for i, (title, desc) in enumerate(self.entries[start:start + self.PER_PAGE], start=start):
+            embed.add_field(name=f"{i + 1}. {title}", value=desc, inline=False)
+
+        return embed
+
+    async def _go_to(self, interaction: discord.Interaction, page: int):
+        self.page = page
+        self._update_buttons()
+        await interaction.response.edit_message(embed=self.build_embed(), view=self)
+
+    @discord.ui.button(label="<<", style=discord.ButtonStyle.secondary)
+    async def btn_first(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self._go_to(interaction, 0)
+
+    @discord.ui.button(label="<", style=discord.ButtonStyle.primary)
+    async def btn_prev(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self._go_to(interaction, self.page - 1)
+
+    @discord.ui.button(label="⏹", style=discord.ButtonStyle.danger)
+    async def btn_stop(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.edit_message(view=None)
+        self.stop()
+
+    @discord.ui.button(label=">", style=discord.ButtonStyle.primary)
+    async def btn_next(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self._go_to(interaction, self.page + 1)
+
+    @discord.ui.button(label=">>", style=discord.ButtonStyle.secondary)
+    async def btn_last(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self._go_to(interaction, self.max_page)
+
+    async def on_timeout(self):
+        if self.message:
+            await self.message.edit(view=None)

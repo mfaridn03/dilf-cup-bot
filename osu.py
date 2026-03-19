@@ -1,5 +1,4 @@
 import os
-import asyncio
 import ossapi
 import discord
 
@@ -7,7 +6,7 @@ from discord.ext import commands
 from dotenv import load_dotenv
 
 from data.playertop import PlayerTop
-from utils import EmbedUtils
+from utils import EmbedUtils, TopPlaysPaginator
 
 load_dotenv()
 
@@ -142,20 +141,16 @@ class Osu(commands.Cog):
         top = PlayerTop(ctx.author.id, scores)
         toplist = top.sort()
 
-        embed = discord.Embed()
-        embed.set_author(name=f"{ctx.author.name}'s top plays", icon_url=ctx.author.display_avatar.url)
-        embed.set_thumbnail(url=f"https://a.ppy.sh/{player_id}?img.jpeg")
-        embed.set_footer(text=f"Total PP: {top.total_pp}")
+        entries = [top.format_entry(entry) for entry in toplist]
 
-        for i, entry in enumerate(toplist):
-            # formatted_entry = top.format_entry(entry)
-            # await ctx.send(f"{i+1}. {formatted_entry}")
-            # await asyncio.sleep(0.5)
-            title, desc = top.format_entry(entry)
-            name = f"{i+1}. {title}"
-            embed.add_field(name=name, value=desc, inline=False)
-        
-        await ctx.send(embed=embed)
+        paginator = TopPlaysPaginator(
+            entries=entries,
+            author_name=ctx.author.name,
+            player_id=player_id,
+            total_pp=top.total_pp,
+            avatar_url=ctx.author.display_avatar.url,
+        )
+        paginator.message = await ctx.send(embed=paginator.build_embed(), view=paginator)
 
 async def setup(bot):
     await bot.add_cog(Osu(bot))
