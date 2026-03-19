@@ -75,7 +75,8 @@ class RedisStore:
                 "score_id": int,
                 "title": str,
                 "diff": str,
-                "artist": str
+                "artist": str,
+                "rank": str
             }
         }
 
@@ -107,6 +108,7 @@ class RedisStore:
             "title": score.beatmapset.title,
             "diff": score.beatmap.version,
             "artist": score.beatmapset.artist,
+            "rank": score.rank.value,
         }
         await self.redis.hset(_player_hash, str(score.beatmap_id), json.dumps(data))
         

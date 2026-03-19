@@ -1,11 +1,12 @@
 import os
+import asyncio
 import ossapi
 import discord
 
 from discord.ext import commands
 from dotenv import load_dotenv
 
-from data.store import RedisStore
+from data.playertop import PlayerTop
 from utils import EmbedUtils
 
 load_dotenv()
@@ -120,6 +121,27 @@ class Osu(commands.Cog):
         
         await ctx.send(msg, embed=embed, reference=ctx.message)
 
+    @commands.command(name="top")
+    async def cmd_top(self, ctx: commands.Context):
+        """
+        Fetch top scores for a user
+        """
+        player_id = await self.bot.redis.get_discord_osu(ctx.author.id)
+        if not player_id:
+            return await ctx.send("You are not linked")
+        
+        print("fetching scores")
+        scores = await self.bot.redis.get_scores(ctx.author.id)
+        print("scores fetched, sorting")
+        top = PlayerTop(ctx.author.id, scores)
+        toplist = top.sort()
+        print("top created")
+
+        for entry in toplist:
+            print(f"formatting entry")
+            formatted_entry = top.format_entry(entry)
+            await ctx.send(formatted_entry)
+            await asyncio.sleep(0.5)
 
 async def setup(bot):
     await bot.add_cog(Osu(bot))

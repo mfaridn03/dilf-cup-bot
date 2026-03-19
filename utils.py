@@ -3,6 +3,47 @@ import ossapi
 
 from discord.ext import commands
 
+class ModUtils:
+    @classmethod
+    def MOD_ORDER(cls) -> list[str]:
+        return ["HT", "EZ", "HD", "DT", "NC", "HR", "FL", "NF", "SD", "PF", "SO", "CL"]
+
+class RankEmotes:
+    @property
+    def X(self) -> str:
+        return "<:grade_X:1484023749073174538>"
+
+    @property
+    def XH(self) -> str:
+        return "<:grade_XH:1484023751250022410>"
+
+    @property
+    def SH(self) -> str:
+        return "<:grade_SH:1484023746065858694>"
+
+    @property
+    def S(self) -> str:
+        return "<:grade_S:1484023744115507280>"
+
+    @property
+    def A(self) -> str:
+        return "<:grade_A:1484023647638130849>"
+
+    @property
+    def B(self) -> str:
+        return "<:grade_B:1484023737824182413>"
+
+    @property
+    def C(self) -> str:
+        return "<:grade_C:1484023739786989649>"
+
+    @property
+    def D(self) -> str:
+        return "<:grade_D:1484023742081532044>"
+
+    @classmethod
+    def get(cls, rank: str) -> str:
+        return getattr(cls(), rank.upper())
 
 class EmbedUtils:
     GRADE_IMAGE_URL = "https://raw.githubusercontent.com/mfaridn03/dilf-cup-bot/refs/heads/main/data/grades/{}.png"
@@ -18,11 +59,13 @@ class EmbedUtils:
     ) -> discord.Embed:
         pp = score.pp or 0
         acc = round(score.accuracy * 100, 2)
+
         mods = [mod.acronym for mod in score.mods]
         if mods == ["CL"]:
             mods = ["NM"]
         elif "CL" in mods:
             mods.remove("CL")
+        mods.sort(key=lambda x: ModUtils.MOD_ORDER().index(x))
 
         n0 = score.statistics.miss or 0
         n50 = score.statistics.meh or 0
