@@ -91,10 +91,16 @@ class RedisStore:
 
         # save score to db
         max_combo = await self.get_beatmap_combo(score.beatmap_id)
+        mods = [mod.acronym for mod in score.mods]
+        if mods == ["CL"]:
+            mods = ["NM"]
+        elif "CL" in mods:
+            mods.remove("CL")
+
         data = {
             "pp": score.pp,
             "acc": score.accuracy,
-            "mods": [mod.acronym for mod in score.mods],
+            "mods": mods,
             "combo": score.max_combo,
             "max_combo": max_combo,
             "score_id": score.id,
@@ -109,6 +115,11 @@ class RedisStore:
         debug_str += f" | {score.pp}pp | {score.accuracy * 100}% | {score.max_combo}x/{max_combo}x"
         print(debug_str)
         return True
+    
+    async def get_scores(self, discord_id: int) -> dict:
+        _player_hash = PLAYER_HASH.format(discord_id)
+        result = await self.redis.hgetall(_player_hash)
+        return {str(k): json.loads(v) for k, v in result.items()}
     
     async def reset_scores(self, ctx: commands.Context):
         """

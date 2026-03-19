@@ -38,7 +38,7 @@ class Osu(commands.Cog):
     
     @commands.is_owner()
     @commands.command(name="set")
-    async def cmd_set(self, ctx: commands.Context, member: discord.Member = None, username: str = None):
+    async def cmd_set(self, ctx: commands.Context, member: discord.Member = None, *, username: str = None):
         """
         Sets osu username. Leave blank to unlink
         """
@@ -112,7 +112,7 @@ class Osu(commands.Cog):
 
         # save score to db
         if await self.bot.redis.save_score(ctx, score):
-            msg = "New score added"
+            msg = "New entry added"
             embed.colour = discord.Colour.green()
         else:
             msg = "Did not overwrite existing score"
