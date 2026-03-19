@@ -69,14 +69,30 @@ class Osu(commands.Cog):
         if not player_id:
             return await ctx.send("You are not linked")
 
+        recent_scores = await self.api.user_scores(
+            user_id=player_id,
+            type=ossapi.ScoreType.RECENT,
+            include_fails=False,
+            limit=1,
+            mode=ossapi.GameMode.OSU,
+            legacy_only=True,
+        )
+        if len(recent_scores) == 0:
+            return await ctx.send("No recent passes found", reference=ctx.message)
+
+        score = recent_scores[0]
+        beatmap = await self.api.beatmap(beatmap_id=score.beatmap_id)
+        username = await self.bot.redis.get_osuname(ctx.author.id)
+
         embed = await EmbedUtils.recent_score(
             ctx=ctx,
-            api=self.api,
-            redis=self.bot.redis,
+            username=username,
             player_id=player_id,
+            score=score,
+            beatmap=beatmap,
         )
         
-        await ctx.send(embed=embed)
+        await ctx.send(embed=embed, reference=ctx.message)
 
 
 async def setup(bot):
