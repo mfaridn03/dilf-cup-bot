@@ -130,18 +130,24 @@ class Osu(commands.Cog):
         if not player_id:
             return await ctx.send("You are not linked")
         
-        print("fetching scores")
         scores = await self.bot.redis.get_scores(ctx.author.id)
-        print("scores fetched, sorting")
         top = PlayerTop(ctx.author.id, scores)
         toplist = top.sort()
-        print("top created")
 
-        for entry in toplist:
-            print(f"formatting entry")
-            formatted_entry = top.format_entry(entry)
-            await ctx.send(formatted_entry)
-            await asyncio.sleep(0.5)
+        embed = discord.Embed()
+        embed.set_author(name=f"{ctx.author.name}'s top plays", icon_url=ctx.author.display_avatar.url)
+        embed.set_thumbnail(url=f"https://a.ppy.sh/{player_id}?img.jpeg")
+        embed.set_footer(text=f"Total PP: {top.total_pp}")
+
+        for i, entry in enumerate(toplist):
+            # formatted_entry = top.format_entry(entry)
+            # await ctx.send(f"{i+1}. {formatted_entry}")
+            # await asyncio.sleep(0.5)
+            title, desc = top.format_entry(entry)
+            name = f"{i+1}. {title}"
+            embed.add_field(name=name, value=desc, inline=False)
+        
+        await ctx.send(embed=embed)
 
 async def setup(bot):
     await bot.add_cog(Osu(bot))

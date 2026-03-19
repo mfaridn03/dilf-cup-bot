@@ -4,16 +4,17 @@ from utils import ModUtils, RankEmotes
 
 class PlayerTop:
     def __init__(self, discord_id: int, data: dict):
-        self.data = data
+        self._data = data
+        self.data = self.sort()
+        self.total_pp = self._calculate_total_pp()
 
     def sort(self) -> list[tuple[str, dict]]:
         _sorted = sorted(
-            self.data.items(),
+            self._data.items(),
             key=lambda x: x[1]["pp"],
             reverse=True,
         )
-        self.data = _sorted
-        return self.data
+        return _sorted
     
     def format_entry(self, entry: tuple[str, dict]) -> str:
         _, score_data = entry
@@ -33,4 +34,17 @@ class PlayerTop:
         mods.sort(key=lambda x: ModUtils.MOD_ORDER().index(x))
         mods = f"+{','.join(score_data['mods'])}"
         # bathbot formatting
-        return f"{artist} - {title} [{diff}]\n{rank_emote} **{pp}pp** ({acc}%) [**{combo}x**/{max_combo}x] **{mods}**"
+        # return f"{artist} - {title} [{diff}]\n{rank_emote} **{pp}pp** ({acc}%) [**{combo}x**/{max_combo}x] **{mods}**"
+        return f"{artist} - {title} [{diff}]", f"{rank_emote} **{pp}pp** ({acc}%) [**{combo}x**/{max_combo}x] **{mods}**"
+
+    def _calculate_total_pp(self) -> float:
+        cur_weight = 1.0
+        total = 0.0
+
+        for entry in self.data:
+            _, score_data = entry
+            total += score_data["pp"] * cur_weight
+            cur_weight *= 0.95
+        
+        return round(total, 2)  # hopefully no floating point issues
+        
