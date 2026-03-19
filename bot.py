@@ -4,6 +4,7 @@ import traceback
 import aiofiles
 import redis.asyncio as aioredis
 
+from data.store import RedisStore
 from discord.ext import commands
 from jishaku.paginators import PaginatorInterface
 from dotenv import load_dotenv
@@ -39,8 +40,8 @@ class DilfBot(commands.Bot):
             return
         
         # load redis
-        self.redis = aioredis.Redis()
-        response = await self.redis.ping()
+        self.redis = RedisStore()
+        response = await self.redis.redis.ping()
         print("Redis connected:", response)
 
         await super().start(token)
@@ -52,7 +53,7 @@ class DilfBot(commands.Bot):
     async def cleanup(self):
         if self.redis is not None:
             print("Closing Redis")
-            await self.redis.aclose()
+            await self.redis.close()
             self.redis = None
 
         if self.scores:

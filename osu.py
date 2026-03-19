@@ -5,6 +5,8 @@ import discord
 from discord.ext import commands
 from dotenv import load_dotenv
 
+from data.store import RedisStore
+
 load_dotenv()
 
 OSU_CLIENT_ID = os.environ.get("osu-client-id")
@@ -23,21 +25,20 @@ class Osu(commands.Cog):
     @commands.command(name="set")
     async def cmd_set(self, ctx: commands.Context, member: discord.Member = None, username: str = None):
         """
-        Set your osu username. Leave blank to unlink
+        Sets osu username. Leave blank to unlink
         """
         if member is None:
             member = ctx.author
         elif member.bot:
             return
 
-        if username is None:
-            # check if user is linked
-            if await self.bot.redis.exists(f"osu:discord:{member.id}"):
-                await self.bot.redis.delete(f"osu:discord:{member.id}")
-                return await ctx.send("Discord unlinked from player")
-            else:
+        # unlinking
+        if not username:
+            if not await self.bot.redis.get_discord_osu(member.id):
                 return await ctx.send("You are not linked")
+            return await self.bot.redis.unlink_discord_osu(member.id)
 
+        # linking
         # fetch player via api, send error if not found
         try:
             player = await self.api.user(
@@ -48,7 +49,9 @@ class Osu(commands.Cog):
         except ValueError:
             return await ctx.send(f"Player `{username}` not found")
         
-        await self.bot.redis.set(f"osu:discord:{member.id}", player.id)
+        await self.bot.redis.link_discord_osu(member.id, player.id)
+        await self.bot.redis.cache_osuname(member.id, player.username)
+        
         await ctx.send(f"{member.name} linked to player `{player.username}`")
 
     @commands.command(name="recent", aliases=["r"])
@@ -56,10 +59,10 @@ class Osu(commands.Cog):
         """
         Fetch latest pass score
         """
-        if not await self.bot.redis.exists(f"osu:discord:{ctx.author.id}"):
+        player_id = await self.bot.redis.get_discord_osu(ctx.author.id)
+        if not player_id:
             return await ctx.send("You are not linked")
         
-        player_id = int(await self.bot.redis.get(f"osu:discord:{ctx.author.id}"))
         recent_scores = await self.api.user_scores(
             user_id=player_id,
             type=ossapi.ScoreType.RECENT,
